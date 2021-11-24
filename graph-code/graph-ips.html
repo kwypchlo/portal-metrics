@@ -1,0 +1,65 @@
+<html>
+	<head>
+		<script src="../plotly-2.6.3.min.js"></script>
+		<script src="downloads.js"></script>
+		<script src="uploads.js"></script>
+		<script src="ipData.js"></script>
+	</head>
+	<body>
+		<div id="downloads" style=width:600px;height:250px;"></div>
+		<div id="uploads" style=width:600px;height:250px;"></div>
+		<div id="ipsDaily" style=width:600px;height:250px;"></div>
+		<div id="ipsMonthly" style=width:600px;height:250px;"></div>
+		<div id="churn" style=width:600px;height:250px;"></div>
+	</body>
+
+	<script>
+
+downloads = document.getElementById('downloads')
+Plotly.newPlot( downloads, [
+		{
+			x: downloadsX,
+			y: downloadsY,
+		}
+], { 
+	title: 'Downloads',
+} );
+uploads = document.getElementById('uploads')
+Plotly.newPlot( uploads, [
+		{
+			x: uploadsX,
+			y: uploadsY,
+		}
+], { 
+	title: 'Uploads',
+} );
+ipsDaily = document.getElementById('ipsDaily')
+Plotly.newPlot( ipsDaily, [
+		{
+			x: xDailyIPs,
+			y: yDailyIPs,
+		}
+], { 
+	title: 'Unique IPs Daily',
+} );
+ipsMonthly = document.getElementById('ipsMonthly')
+Plotly.newPlot( ipsMonthly, [
+		{
+			x: xMonthlyIPs,
+			y: yMonthlyIPs,
+		}
+], { 
+	title: 'Unique IPs Monthly',
+} );
+churn = document.getElementById('churn')
+Plotly.newPlot( churn, [
+		{
+			x: xChurn,
+			y: yChurn,
+		}
+], { 
+	title: 'Churn',
+} );
+
+	</script>
+</html>

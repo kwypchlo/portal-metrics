@@ -1,0 +1,45 @@
+<html>
+	<head>
+		<script src="../plotly-2.6.3.min.js"></script>
+		<script src="downloads.js"></script>
+		<script src="uploads.js"></script>
+		<script src="ips.js"></script>
+	</head>
+	<body>
+		<div id="downloads" style=width:600px;height:250px;"></div>
+		<div id="uploads" style=width:600px;height:250px;"></div>
+		<div id="ips" style=width:600px;height:250px;"></div>
+	</body>
+
+	<script>
+
+downloads = document.getElementById('downloads')
+Plotly.newPlot( downloads, [
+		{
+			x: downloadsX,
+			y: downloadsY,
+		}
+], { 
+	title: 'Downloads',
+} );
+uploads = document.getElementById('uploads')
+Plotly.newPlot( uploads, [
+		{
+			x: uploadsX,
+			y: uploadsY,
+		}
+], { 
+	title: 'Uploads',
+} );
+ips = document.getElementById('ips')
+Plotly.newPlot( ips, [
+		{
+			x: ipsX,
+			y: ipsY,
+		}
+], { 
+	title: 'Unique IPs',
+} );
+
+	</script>
+</html>
