@@ -1,17 +1,9 @@
 all: dependencies update merge
 
-dependencies: splitter stats-builder metrics-joiner power-analyzer
-
-splitter:
-	(cd splitter && go build && cp nginx-data-splitter ../updater)
-
-stats-builder:
-	(cd stats-builder && go build && cp stats ../updater)
-
-metrics-joiner:
+dependencies:
+	(cd nginx-log-splitter && go build && cp splitter ../server-updater)
+	(cd stats-builder && go build && cp stats ../server-updater)
 	(cd metrics-joiner && go build && cp joiner ../)
-
-power-analyzer:
 	(cd power-analyzer && go build && cp power ../)
 
 update:

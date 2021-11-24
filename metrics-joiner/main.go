@@ -400,9 +400,8 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 		temp = filepath.Dir(temp)
 	}
 	pathComponents[1] = "graphs"
-	pathComponents[len(pathComponenets)-1] = "ipData.js"
+	pathComponents[len(pathComponents)-1] = "ipData.js"
 	ipFilename := filepath.Join(pathComponents...)
-	ipFilename := filepath.Join(filepath.Dir(destPath), "ipData.js")
 	ipFile, err := os.OpenFile(ipFilename, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return errors.AddContext(err, "unable to open ip file")

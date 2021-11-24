@@ -1,5 +1,13 @@
+# Build tools
 *.swp
 notes
 out.txt
 
+# Folders created while running scripts
 data
+
+# Binaries compiled from within the repo.
+splitter
+joiner
+power
+stats
