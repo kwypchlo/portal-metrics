@@ -21,7 +21,7 @@ do
 	# Transfer the necessary scrips and binaries to the server and run them.
 	echo "running metrics.sh on $server"
 	ssh $server "mkdir -p /home/user/metrics" || continue
-	scp updater/{metrics.sh,stats,splitter} $server:/home/user/metrics/ || continue
+	scp server-updater/{metrics.sh,stats,splitter} $server:/home/user/metrics/ || continue
 	ssh $server "/home/user/metrics/metrics.sh" || continue
 
 	# Tar the resulting directories and download the tarballs to the local data
