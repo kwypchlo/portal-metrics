@@ -7,15 +7,16 @@ servers=$(ls -1 data/server-keys)
 for server in $servers
 do
 	# Declare we are working on the server, and scan the host's key.
-	keyKnown=$(cat data/servers-keys/$server)
+	keyKnown=$(cat data/server-keys/$server)
 	if [[ "$keyKnown" != "true" ]];
 	then
 		ssh-keyscan $server >> ~/.ssh/known_hosts
-		echo "true" > data/servers-keys/$server
+		echo "true" > data/server-keys/$server
 	fi
 done
 
 # Run the updater on each server.
+mkdir -p data/servers
 for server in $servers
 do
 	# Transfer the necessary scrips and binaries to the server and run them.
