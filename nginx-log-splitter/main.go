@@ -219,28 +219,6 @@ func getEndpoint(field string) string {
 }
 
 func main() {
-	/*
-	// Create the profile file.
-	profFile, err := os.OpenFile("x.prof", os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		fmt.Println("unable to open profFile")
-		return
-	}
-	defer func() {
-		err = profFile.Close()
-		if err != nil {
-			fmt.Println("error closing prof file")
-			return
-		}
-	}()
-	err = pprof.StartCPUProfile(profFile)
-	if err != nil {
-		fmt.Println("unable to start profile")
-		return
-	}
-	defer pprof.StopCPUProfile()
-	*/
-
 	// Look for a file that says how much of the log has already been processed,
 	// we will resume from there.
 	bytesProcessedFile, err := os.OpenFile("bytesProcessed.txt", os.O_RDWR, 0644)

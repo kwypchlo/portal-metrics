@@ -1,4 +1,4 @@
-module nginx-data-splitter
+module splitter
 
 go 1.16
 
