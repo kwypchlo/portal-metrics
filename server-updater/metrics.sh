@@ -72,6 +72,10 @@ do
 
 	# If the stats command fails, abort immediately, we do not want to corrupt
 	# our files by processing the same day multiple times.
+	#
+	# TODO: If there is an error, we should probably nuke the main/ and app/
+	# folder, and delete 'latestScan.txt' before exiting, to force a user to
+	# retry rather than potentially give them corrupted data.
 	./stats days/$dayFile || exit 1
 
 	# Update the latest day so that we don't process this dayfile again. This

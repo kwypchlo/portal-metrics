@@ -8,7 +8,7 @@ The main goal of this project was to get some low-cost metrics from Skynet.
 Other solutions that we explored (mainly ELK and goaccess) either were not cheap
 enough or not powerful enough to produce the results that we wanted.
 
-## Setup
+## Server Setup
 
 To get started, run `make dependencies`. You will need go 1.16 or later for this
 step to work. After that, you need to create a folder inside of the repo called
@@ -34,3 +34,20 @@ connects successfully to the server over ssh. If the data in the file is not
 server's key to the users list of hosts. If the contents are "true", then the
 script assumes that any ssh key errors indicate an attack, and the scripts will
 not connect to that server until the issue is resolved.
+
+## Updating Portals
+
+Once you've populated the 'server-keys' folder, you are ready to begin
+processing your nginx logs. Run `./update.sh` to begin. The update script will
+go through the servers one at a time and run 'metrics.sh' within the servers.
+This will split the nginx access.log files into more digestible pieces, and then
+process each of the pieces.
+
+The first time you run the script it can take a while. Subsequent runs of
+'update.sh' will track previous work that was completed and only process new log
+lines, which means the process will go much faster.
+
+Once the processing is complete, one tarball for each server will be downloaded
+which contains aggregated statistics about the server.
+
+## Merging the tarballs
