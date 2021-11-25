@@ -48,6 +48,7 @@ The first time you run the script it can take a while. Subsequent runs of
 lines, which means the process will go much faster.
 
 Once the processing is complete, one tarball for each server will be downloaded
-which contains aggregated statistics about the server.
+which contains aggregated statistics about the server. These will go into the
+'data/servers' folder.
 
 ## Merging the tarballs

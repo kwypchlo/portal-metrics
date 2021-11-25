@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -76,22 +77,23 @@ func writeStats(s stats, path string) error {
 	if err != nil {
 		return errors.AddContext(err, "unable to open ips file")
 	}
-	// Build the ip section. It always leads with one line specifying the date.
-	_, err = fmt.Fprintf(ipsFile, "%s\n", filepath.Base(os.Args[1]))
-	if err != nil {
-		return errors.AddContext(err, "unable to write to uploads file")
-	}
-	// Write each IP on a separate line.
+	// Build the ip data section. The format is the date [10 bytes], followed by
+	// a uint64 specifying the number of ip addresses, followed by the ip
+	// addresses.
+	ipData := make([]byte, 10+8+4(len(s.ips)))
+	copy(ipData, []byte(os.Args[1]))
+	binary.LittleEndian.PutUint64(ipData[10:], uint64(len(s.ips)))
+	i := 0
 	for ip, _ := range s.ips {
-		_, err = fmt.Fprintf(ipsFile, "%s\n", ip)
-		if err != nil {
-			return errors.AddContext(err, "unable to write to uploads file")
-		}
+		nip := net.ParseIP(ip)
+		nip4 := nip.To4()
+		ip32 := binary.LittleEndian.Uint32(nip4)
+		binary.LittleEndian.PutUint64(ipData[10+8+4*i:], ip32)
+		i++
 	}
-	// Finish by writing an exclaimation point.
-	_, err = fmt.Fprintf(ipsFile, "!\n")
+	_, err = ipsFile.Write(ipData)
 	if err != nil {
-		return errors.AddContext(err, "unable to write to uploads file")
+		return errors.AddContext(err, "unable to write to ipsFile")
 	}
 	err = ipsFile.Close()
 	if err != nil {

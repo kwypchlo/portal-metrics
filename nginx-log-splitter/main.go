@@ -11,34 +11,12 @@ import (
 	"strings"
 )
 
-// splitLines does a strings.Split(string(b), " "), but without allocating new
-// memory.
-func splitLines(b []byte) [][]byte {
-	ret := make([][]byte, 0, 100e3)
-
-	// We can check long subslices using bytes.Contains to improve performance.
-	// Without that, this function takes surprisingly a long time to execute. A
-	// length of 20 was chosen by trial and error.
-	subsliceSize := 20
-	start := 0
-	for i := 0; i+subsliceSize < len(b); i += subsliceSize {
-		if !bytes.Contains(b[i:i+subsliceSize], []byte{'\n'}) {
-			continue
-		} else {
-			for j := i; j < i+subsliceSize; j++ {
-				if b[j] == '\n' {
-					ret = append(ret, b[start:j])
-					start = j+1
-				}
-			}
-		}
-	}
-	return ret
-}
-
-// getFields does a strings.Split with a space, but it re-merges fields that
-// are encased by quotes.
+// getFields will return the different fields of an nginx log lines as separate
+// byte slices. It pays attention to elements like colons and quotes. Notably,
+// it does not currently pay attention to brackets, but this has largely not
+// caused problems yet.
 func getFields(line []byte) [][]byte {
+	// There are typically about 24 fields in an nginx line.
 	finalFields := make([][]byte, 0, 30)
 
 	// Advance one character at a time, deciding based on quote status whether
@@ -49,8 +27,10 @@ func getFields(line []byte) [][]byte {
 		if !quoteOpen {
 			if line[i] == '"' {
 				quoteOpen = true
-			}
-			if line[i] == ' ' && line[i+1] != ':' && line[i-1] != ':' {
+			} else if line[i] == ' ' && line[i+1] != ':' && line[i-1] != ':' {
+				// This conditional will not trigger if the space has a colon on
+				// either side of it, because some nginx elements use colons to
+				// concetenate data.
 				finalFields = append(finalFields, line[start:i])
 				start = i+1
 			}
@@ -64,12 +44,6 @@ func getFields(line []byte) [][]byte {
 		}
 	}
 	return finalFields
-}
-
-// getCacheResult cleans up the cache result field.
-func getCacheResult(field string) string {
-	// Trim the quotes
-	return field[1 : len(field)-1]
 }
 
 // getDateFromField will return the date for the presented field.
@@ -193,42 +167,15 @@ func getMethod(field []byte) []byte {
 	return field[:methodEnd]
 }
 
-// getEndpoint will return the endpoint field, eliminating much of the extra
-// data.
-func getEndpoint(field string) string {
-	// Trim the first quote.
-	field = field[1:]
-
-	// Leave the method and following space.
-	endpointStart := 0
-	for endpointStart = 0; endpointStart < len(field); endpointStart++ {
-		if field[endpointStart] == '/' {
-			break
-		}
-	}
-	// Kill the endpoint at either a space or a question mark, as this marks the
-	// end of the endpoint.
-	var endpointEnd int
-	for endpointEnd = endpointStart; endpointEnd < len(field); endpointEnd++ {
-		if field[endpointEnd] == ' ' || field[endpointEnd] == '?' {
-			break
-		}
-	}
-
-	return field[:endpointEnd]
-}
-
 func main() {
 	// Look for a file that says how much of the log has already been processed,
 	// we will resume from there.
+	bytesProcessed := 0
 	bytesProcessedFile, err := os.OpenFile("bytesProcessed.txt", os.O_RDWR, 0644)
 	if err != nil && !os.IsNotExist(err) {
 		fmt.Println("unable to open bytesProcessed.txt:", err)
 		return
 	}
-
-	// Read the file. If it doesn't exist, set the processed bytes to zero.
-	bytesProcessed := 0
 	if !os.IsNotExist(err) {
 		lineCountBytes, err := ioutil.ReadAll(bytesProcessedFile)
 		if err != nil {
@@ -242,7 +189,6 @@ func main() {
 			return
 		}
 		fmt.Println("processing logfile starting from byte number:", bytesProcessed)
-		// Close the bytesProcessedFile.
 		err = bytesProcessedFile.Close()
 		if err != nil {
 			fmt.Println("unable to close the bytes processed file:", err)
@@ -250,7 +196,8 @@ func main() {
 		}
 	}
 
-	// Create the directory to house the daily results.
+	// Create the directory to house the daily results. There's one file created
+	// per day.
 	err = os.MkdirAll("days", 0755)
 	if err != nil {
 		fmt.Println("Unable to create 'days' directory:", err)
@@ -259,6 +206,24 @@ func main() {
 
 	// Open the access.log and seek to the provided byte offset to begin parsing
 	// the file.
+	//
+	// TODO: Change the log to being a reader that wraps around an object which
+	// searches through sorted logs that have been compressed into a .tar.gz. We
+	// are going to need another file which tells us how many .tar.gz files to
+	// skip, and then we'll use a gzip streamer to open and read through any
+	// gzipped logs that we haven't read yet. The file that tells us which
+	// gzipped file we've read most recently will also tell us how many logical
+	// bytes (uncompressed) were in all of the gzips up to and including that
+	// log, so when we move onto the next log or the access.log itself, we know
+	// what offset to start at.
+	//
+	// The most common scenario will be one where we read all the data in a
+	// prior set of gzips, then read a fraction of the access.log. When we come
+	// back, we'll see that we have new gzips to read through, but our
+	// bytesProcessed field will tell us that we've already read at least some
+	// of the data in the new gzips. We'll have to seek through the gzipped
+	// files until we've gone through the right number of bytes, then we can
+	// start reading as usual.
 	log, err := os.Open(os.Args[1])
 	if err != nil {
 		fmt.Println(os.Args[1])
@@ -271,17 +236,20 @@ func main() {
 		return
 	}
 
-	// Read a chunk of the access.log at a time. We are assuming that the chunk
-	// will have at least one full day in it, otherwise an error will be thrown.
-	// Only one day is processed at a time, bufOffset is used to increase the
-	// efficiency of the program when multiple days fit in memory at once.
+	// This loop reads one chunk of the access.log at a time. We limit the
+	// buffers to 100 MB each to reduce the amount of memory. We are able to
+	// make the writeBuf 100 MB because we know that the data written to the
+	// writeBuf will always be strictly fewer bytes than the data read from the
+	// streamer into 'buf'.
 	//
-	// The loop will kick out when the end of the file has been reached.
-	bufOffset := 0
-	buf := make([]byte, 100e6) // buf = readBuf
+	// This loop processes at most one day of logs per iteration, which means
+	// only a fraction of the buffer may be processed. This means that the
+	// buffer shifting needs to be implemented carefully.
+	readBufOffset := 0
+	readBuf := make([]byte, 100e6)
 	writeBuf := make([]byte, 100e6)
 	for {
-		n, readErr := log.Read(buf[bufOffset:])
+		n, readErr := log.Read(readBuf[bufOffset:])
 		if readErr == io.EOF {
 			break
 		}
@@ -289,16 +257,16 @@ func main() {
 			fmt.Println("unable to read the file")
 			return
 		}
-		bufOffset += n
+		readBufOffset += n
 		writeOffset := 0
 
 		// Split the buffer into lines. Only grab the bytes that were actually
 		// filled, which is indicated by bufOffset.
-		lines := splitLines(buf[:bufOffset])
+		lines := bytes.Split(buf[:bufOffset], []byte{' '})
 		// If less than 3 lines total were read, we don't want to try processing
 		// them. Instead, we'll fetch more data. If these are the last 1 or 2
 		// lines, they may not get processed at all, but that's okay we'll get
-		// them next time.
+		// those lines later after more logs are available.
 		if len(lines) < 3 {
 			continue
 		}
