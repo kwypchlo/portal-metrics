@@ -1,2 +1,4 @@
+github.com/NebulousLabs/errors v0.0.0-20181203160057-9f787ce8f69e h1:9UwdEr0AFI021vXG+hXDGH9ZHGuNtPCdJkRTqcIhJ3A=
+github.com/NebulousLabs/errors v0.0.0-20181203160057-9f787ce8f69e/go.mod h1:J7tUI9Fg4YuFLsqeLE5uIp93Fot9oBCw2vwZJvLmWso=
 gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975 h1:L/ENs/Ar1bFzUeKx6m3XjlmBgIUlykX9dzvp5k9NGxc=
 gitlab.com/NebulousLabs/errors v0.0.0-20200929122200-06c536cf6975/go.mod h1:ZkMZ0dpQyWwlENaeZVBiQRjhMEZvk6VTXquzl3FOFP8=

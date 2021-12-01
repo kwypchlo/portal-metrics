@@ -32,14 +32,14 @@ func getFields(line []byte) [][]byte {
 				// either side of it, because some nginx elements use colons to
 				// concetenate data.
 				finalFields = append(finalFields, line[start:i])
-				start = i+1
+				start = i + 1
 			}
 		} else {
 			if line[i] == '"' {
 				i++
 				quoteOpen = false
 				finalFields = append(finalFields, line[start:i])
-				start = i+1
+				start = i + 1
 			}
 		}
 	}
@@ -249,7 +249,7 @@ func main() {
 	readBuf := make([]byte, 100e6)
 	writeBuf := make([]byte, 100e6)
 	for {
-		n, readErr := log.Read(readBuf[bufOffset:])
+		n, readErr := log.Read(readBuf[readBufOffset:])
 		if readErr == io.EOF {
 			break
 		}
@@ -262,7 +262,7 @@ func main() {
 
 		// Split the buffer into lines. Only grab the bytes that were actually
 		// filled, which is indicated by bufOffset.
-		lines := bytes.Split(buf[:bufOffset], []byte{' '})
+		lines := bytes.Split(readBuf[:readBufOffset], []byte{' '})
 		// If less than 3 lines total were read, we don't want to try processing
 		// them. Instead, we'll fetch more data. If these are the last 1 or 2
 		// lines, they may not get processed at all, but that's okay we'll get
@@ -336,8 +336,8 @@ func main() {
 		// the unread part of the buf to the beginning, and then set the
 		// bufOffset so that the next read doesn't have to do a full read, it
 		// can re-use the unread data.
-		copy(buf, buf[bytesProcessedCurrentDay:])
-		bufOffset -= bytesProcessedCurrentDay
+		copy(readBuf, readBuf[bytesProcessedCurrentDay:])
+		readBufOffset -= bytesProcessedCurrentDay
 		bytesProcessed += bytesProcessedCurrentDay
 
 		// Update the bytesProcessed file to contain the new bytes processed. We
