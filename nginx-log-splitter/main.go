@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gitlab.com/NebulousLabs/errors"
 )
 
 // getFields will return the different fields of an nginx log lines as separate
@@ -167,6 +169,18 @@ func getMethod(field []byte) []byte {
 	return field[:methodEnd]
 }
 
+// getSkylink returns the skylink from the set of fields. It will do some input
+// checking to make sure a skylink actually exists.
+func getSkylink(fields [][]byte) ([]byte, error) {
+	if len(fields) < 17 {
+		return nil, errors.New("doesn't have enough fields")
+	}
+	if len(fields[16]) != 48 {
+		return nil, errors.New("skylink is not placed")
+	}
+	return fields[16][1:47], nil
+}
+
 func main() {
 	// Look for a file that says how much of the log has already been processed,
 	// we will resume from there.
@@ -196,6 +210,19 @@ func main() {
 		}
 	}
 
+	// Open/create the file that tracks the ips which uploaded each skylink.
+	uploadIPsFile, err := os.OpenFile(filepath.Join(os.Args[1], "uploadIPs.txt"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		fmt.Println("unable to open upload IPs file:", err)
+		return
+	}
+	defer func() {
+		err = uploadIPsFile.Close()
+		if err != nil {
+			fmt.Println("unable to close uploadIPs file:", err)
+		}
+	}()
+
 	// Create the directory to house the daily results. There's one file created
 	// per day.
 	err = os.MkdirAll("days", 0755)
@@ -204,30 +231,10 @@ func main() {
 		return
 	}
 
-	// Open the access.log and seek to the provided byte offset to begin parsing
-	// the file.
-	//
-	// TODO: Change the log to being a reader that wraps around an object which
-	// searches through sorted logs that have been compressed into a .tar.gz. We
-	// are going to need another file which tells us how many .tar.gz files to
-	// skip, and then we'll use a gzip streamer to open and read through any
-	// gzipped logs that we haven't read yet. The file that tells us which
-	// gzipped file we've read most recently will also tell us how many logical
-	// bytes (uncompressed) were in all of the gzips up to and including that
-	// log, so when we move onto the next log or the access.log itself, we know
-	// what offset to start at.
-	//
-	// The most common scenario will be one where we read all the data in a
-	// prior set of gzips, then read a fraction of the access.log. When we come
-	// back, we'll see that we have new gzips to read through, but our
-	// bytesProcessed field will tell us that we've already read at least some
-	// of the data in the new gzips. We'll have to seek through the gzipped
-	// files until we've gone through the right number of bytes, then we can
-	// start reading as usual.
-	log, err := os.Open(os.Args[1])
+	// Open a gzReader to parse all of the logs.
+	log, err := openGZReader(os.Args[1])
 	if err != nil {
-		fmt.Println(os.Args[1])
-		fmt.Println("unable to open access.log:", err)
+		fmt.Println("unable to open gzReader:", err)
 		return
 	}
 	_, err = log.Seek(int64(bytesProcessed), 0)
@@ -248,6 +255,7 @@ func main() {
 	readBufOffset := 0
 	readBuf := make([]byte, 100e6)
 	writeBuf := make([]byte, 100e6)
+	ipsBuf := make([]byte, 100e6)
 	for {
 		n, readErr := log.Read(readBuf[readBufOffset:])
 		if readErr == io.EOF {
@@ -259,10 +267,11 @@ func main() {
 		}
 		readBufOffset += n
 		writeOffset := 0
+		ipsOffset := 0
 
 		// Split the buffer into lines. Only grab the bytes that were actually
 		// filled, which is indicated by bufOffset.
-		lines := bytes.Split(readBuf[:readBufOffset], []byte{' '})
+		lines := bytes.Split(readBuf[:readBufOffset], []byte{'\n'})
 		// If less than 3 lines total were read, we don't want to try processing
 		// them. Instead, we'll fetch more data. If these are the last 1 or 2
 		// lines, they may not get processed at all, but that's okay we'll get
@@ -313,10 +322,35 @@ func main() {
 			writeBuf[writeOffset] = '\n'
 			writeOffset++
 
+			// If there is an upload here, add the upload to the ips file.
+			if bytes.Equal(method, []byte{'P', 'O', 'S', 'T'}) {
+				skylink, err := getSkylink(fields)
+				if err == nil {
+					copy(ipsBuf[ipsOffset:], skylink)
+					ipsOffset += len(skylink)
+					ipsBuf[ipsOffset] = ' '
+					ipsOffset++
+					copy(ipsBuf[ipsOffset:], ip)
+					ipsOffset += len(ip)
+					ipsBuf[ipsOffset] = '\n'
+					ipsOffset++
+				}
+			}
+
 			// Count the number of bytes processed to be accurate on the next
 			// iteration. Add one for the newline that got removed by the Split
 			// call.
 			bytesProcessedCurrentDay += len(lines[i]) + 1
+		}
+
+		// Write to the ips file before writing to the dayfile because the ips
+		// file being corrupted is a non-issue (corruption will manifest as
+		// repeat entries, which will get ignored), but repeat entries in the
+		// dayfile will mess up the stats.
+		_, err = uploadIPsFile.Write(ipsBuf[:ipsOffset])
+		if err != nil {
+			fmt.Println("unable to write to the ips file:", err)
+			return
 		}
 
 		// Open a file for the first date.
@@ -366,11 +400,5 @@ func main() {
 			fmt.Println("error closing bytes processed file:", err)
 			return
 		}
-	}
-
-	err = log.Close()
-	if err != nil {
-		fmt.Println("error closing access.log:", err)
-		return
 	}
 }

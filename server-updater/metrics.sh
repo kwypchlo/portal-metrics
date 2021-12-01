@@ -18,7 +18,7 @@ cd /home/user/metrics
 # NOTE: Any logrotate will significantly disrupt the splitter. When rotating
 # logs, the 'bytesProcessed.txt' file needs to be updated to reflect that data
 # has been moved out of the logfile.
-./splitter ../skynet-webportal/docker/data/nginx/logs/access.log || exit 1
+./splitter /home/user/skynet-webportal/docker/data/nginx/logs || exit 1
 
 # Once we have split the access.log into a bunch of dayfiles, we are going to
 # begin processing them. We use the list of dayfiles to know what needs to be
