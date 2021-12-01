@@ -211,7 +211,7 @@ func main() {
 	}
 
 	// Open/create the file that tracks the ips which uploaded each skylink.
-	uploadIPsFile, err := os.OpenFile(filepath.Join(os.Args[1], "uploadIPs.txt"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	uploadIPsFile, err := os.OpenFile("uploadIPs.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("unable to open upload IPs file:", err)
 		return
