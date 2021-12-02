@@ -19,3 +19,9 @@ do
 done
 cat build/ip-bans.txt | sort | uniq > build/ip-bans-unique.txt
 mv build/ip-bans-unique.txt build/ip-bans.txt
+
+# Get all /24's that appear multiple times. If a /24 has multiple IP addresses
+# in our banlist, we ban the entire /24. To do this, we first replace all '.'
+# with ' ', then we can cut out the fourth column, then we can print the file
+# out again and use 'uniq -D' to print all the lines that appear multiple times.
+cat build/ip-bans.txt | sed 's/\./ /g' | awk '{print $1 " " $2 " " $3 }' | uniq -D | uniq | sed 's/ /./g' > build/ip-bans-24.txt
