@@ -1,4 +1,4 @@
-module indexer
+module filter
 
 go 1.16
 

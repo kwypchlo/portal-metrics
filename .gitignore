@@ -9,8 +9,8 @@ build
 # Binaries compiled from within the repo. Typically these get moved into the
 # build folder anyway, but for development and testing purposes its still nice
 # to list them in the .gitignore
-indexer
+filter
+finder
 joiner
 power
 stats
-finder

@@ -20,6 +20,10 @@ cd /home/user/metrics
 # has been moved out of the logfile.
 ./splitter /home/user/skynet-webportal/docker/data/nginx/logs || exit 1
 
+# TODO: This is just a temporary situation while we prepare an early round of
+# bans.
+exit 0
+
 # Once we have split the access.log into a bunch of dayfiles, we are going to
 # begin processing them. We use the list of dayfiles to know what needs to be
 # processed, and we use a file called 'latestScan.txt' to know which dayfiles
