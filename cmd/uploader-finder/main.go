@@ -6,14 +6,21 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
-// finder is an executable which runs against an uploadIPs.txt file and an
+// banfinder is an executable which runs against an uploadIPs.txt file and an
 // evilSkylinks.txt file. It'll load the evil skylinks into memory and then scan
 // through the set of uploaded files to see if there are any matches.
 func main() {
+	if len(os.Args) != 2 {
+		fmt.Println("banfinder is being used incorrectly, the one and only arg should be the metrics directory")
+		fmt.Println("Example: /home/user/metrics/banfinder /home/user/metrics/")
+		return
+	}
+
 	// Load the evilSkylinks into a map.
-	skylinksFile, err := os.Open("evilSkylinks.txt")
+	skylinksFile, err := os.Open(filepath.Join(os.Args[1], "evilSkylinks.txt"))
 	if err != nil {
 		fmt.Println("Unable to open evilSkylinks.txt:", err)
 		return
@@ -31,7 +38,7 @@ func main() {
 	}
 
 	// Begin reading through the uploadIPs file.
-	uploadsFile, err := os.Open("uploadIPs.txt")
+	uploadsFile, err := os.Open(filepath.Join(os.Args[1], "uploadIPs.txt"))
 	if err != nil {
 		fmt.Println("Unable to open uploadIPs.txt:", err)
 		return

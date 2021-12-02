@@ -182,10 +182,16 @@ func getSkylink(fields [][]byte) ([]byte, error) {
 }
 
 func main() {
+	if len(os.Args) != 3 {
+		fmt.Println("program should have 2 args!")
+		fmt.Println("Example: /home/user/metrics/filter /home/user/skynet-webportal/docker/data/nginx/logs /home/user/metrics")
+		return
+	}
+
 	// Look for a file that says how much of the log has already been processed,
 	// we will resume from there.
 	bytesProcessed := 0
-	bytesProcessedFile, err := os.OpenFile("bytesProcessed.txt", os.O_RDWR, 0644)
+	bytesProcessedFile, err := os.OpenFile(filepath.Join(os.Args[2], "bytesProcessed.txt"), os.O_RDWR, 0644)
 	if err != nil && !os.IsNotExist(err) {
 		fmt.Println("unable to open bytesProcessed.txt:", err)
 		return
@@ -211,7 +217,7 @@ func main() {
 	}
 
 	// Open/create the file that tracks the ips which uploaded each skylink.
-	uploadIPsFile, err := os.OpenFile("uploadIPs.txt", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	uploadIPsFile, err := os.OpenFile(filepath.Join(os.Args[2], "uploadIPs.txt"), os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fmt.Println("unable to open upload IPs file:", err)
 		return
@@ -232,7 +238,7 @@ func main() {
 	}
 
 	// Open a gzReader to parse all of the logs.
-	log, err := openGZReader(os.Args[1])
+	log, err := openGZReader(os.Args[1], os.Args[2])
 	if err != nil {
 		fmt.Println("unable to open gzReader:", err)
 		return
@@ -354,7 +360,7 @@ func main() {
 		}
 
 		// Open a file for the first date.
-		dayFilepath := filepath.Join("days", string(date))
+		dayFilepath := filepath.Join(os.Args[2], "days", string(date))
 		dayFile, err := os.OpenFile(dayFilepath, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
 			fmt.Println("Unable to open the dayfile:", err)
@@ -377,7 +383,7 @@ func main() {
 		// Update the bytesProcessed file to contain the new bytes processed. We
 		// update this write after writing to the dayfile to minimize the chance
 		// that the two fall out of sync.
-		bytesProcessedFile, err = os.OpenFile("bytesProcessed.txt", os.O_RDWR|os.O_CREATE, 0644)
+		bytesProcessedFile, err = os.OpenFile(filepath.Join(os.Args[2], "bytesProcessed.txt"), os.O_RDWR|os.O_CREATE, 0644)
 		if err != nil && !os.IsNotExist(err) {
 			fmt.Println("CORRUPTION WARNING - DATA MAY BE CORRUPTED NOW, ESPECIALLY DAYFILE:", dayFilepath)
 			fmt.Println("unable to open bytesProcessed.txt:", err)

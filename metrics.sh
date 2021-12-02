@@ -18,7 +18,7 @@ cd /home/user/metrics
 # NOTE: Any logrotate will significantly disrupt the splitter. When rotating
 # logs, the 'bytesProcessed.txt' file needs to be updated to reflect that data
 # has been moved out of the logfile.
-./splitter /home/user/skynet-webportal/docker/data/nginx/logs || exit 1
+./filter /home/user/skynet-webportal/docker/data/nginx/logs || exit 1
 
 # TODO: This is just a temporary situation while we prepare an early round of
 # bans.

@@ -24,7 +24,8 @@ import (
 // the log parser script.
 type gzReader struct {
 	// dir is the directory from which the gzReader is reading.
-	dir string
+	logDir string
+	metricsDir string
 	init bool
 
 	// These variables list the archive files and the logical lengths (the
@@ -56,13 +57,14 @@ type gzReader struct {
 // openGZReader is expecting everything to have a naming prefix of access.log.
 // It expects access.log to be the first file, and then everything else should
 // be sorted chronologically.
-func openGZReader(dir string) (*gzReader, error) {
+func openGZReader(logDir, metricsDir string) (*gzReader, error) {
 	var gzr gzReader
-	gzr.dir = dir
+	gzr.logDir = logDir
+	gzr.metricsDir = metricsDir
 
 	// Get the directory that contains the access.log and all of the compressed
 	// historical logs.
-	files, err := os.ReadDir(gzr.dir)
+	files, err := os.ReadDir(gzr.logDir)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to readdir nginx log dir")
 	}
@@ -89,7 +91,7 @@ func openGZReader(dir string) (*gzReader, error) {
 
 	// Open the file that contains all of the offset and length information for
 	// each file in the archive list.
-	archiveLengthsFilename := filepath.Join(gzr.dir, "archiveOffsets.dat")
+	archiveLengthsFilename := filepath.Join(gzr.metricsDir, "archiveOffsets.dat")
 	gzr.archiveLengthsFile, err = os.OpenFile(archiveLengthsFilename, os.O_RDWR|os.O_CREATE, 0644)
 	if err != nil {
 		return nil, errors.AddContext(err, "unable to open archive offsets file")
@@ -119,7 +121,7 @@ func (gzr *gzReader) Seek(offset int64, whence int) (int64, error) {
 	for {
 		// Check if we've run through the whole set of archives.
 		if gzr.fileIndex >= len(gzr.archiveList) {
-			accessLogPath := filepath.Join(gzr.dir, "access.log")
+			accessLogPath := filepath.Join(gzr.logDir, "access.log")
 			liveFile, err := os.Open(accessLogPath)
 			if err != nil {
 				return 0, errors.AddContext(err, "unable to open the live access.log")
@@ -147,7 +149,7 @@ func (gzr *gzReader) Seek(offset int64, whence int) (int64, error) {
 		// we don't know whether the desired offset is contained within the
 		// current archive. Either way, we need to scan through the archive
 		// until we hit the next milestone.
-		archivePath := filepath.Join(gzr.dir, gzr.archiveList[gzr.fileIndex])
+		archivePath := filepath.Join(gzr.logDir, gzr.archiveList[gzr.fileIndex])
 		archiveFile, err := os.Open(archivePath)
 		if err != nil {
 			return 0, errors.AddContext(err, "unable to open the archive file")
@@ -276,7 +278,7 @@ func (gzr *gzReader) Read(p []byte) (int, error) {
 
 		// Check if the next file is the active access.log.
 		if gzr.fileIndex >= len(gzr.archiveList) {
-			accessLogPath := filepath.Join(gzr.dir, "access.log")
+			accessLogPath := filepath.Join(gzr.logDir, "access.log")
 			liveFile, err := os.Open(accessLogPath)
 			if err != nil {
 				return totalRead, errors.AddContext(err, "unable to open the live access.log")
@@ -287,7 +289,7 @@ func (gzr *gzReader) Read(p []byte) (int, error) {
 		}
 
 		// Open the next archive.
-		archivePath := filepath.Join(gzr.dir, gzr.archiveList[gzr.fileIndex])
+		archivePath := filepath.Join(gzr.logDir, gzr.archiveList[gzr.fileIndex])
 		archiveFile, err := os.Open(archivePath)
 		if err != nil {
 			return totalRead, errors.AddContext(err, "unable to open the archive file")
