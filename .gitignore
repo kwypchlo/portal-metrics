@@ -4,10 +4,12 @@ notes
 out.txt
 
 # Folders created while running scripts
-data
+build
 
-# Binaries compiled from within the repo.
-splitter
+# Binaries compiled from within the repo. Typically these get moved into the
+# build folder anyway, but for development and testing purposes its still nice
+# to list them in the .gitignore
+indexer
 joiner
 power
 stats

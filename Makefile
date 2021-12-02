@@ -1,7 +1,8 @@
 all: dependencies
 
 dependencies:
-	(cd nginx-log-splitter && go build && cp splitter ../server-updater)
-	(cd stats-builder && go build && cp stats ../server-updater)
-	(cd metrics-joiner && go build && cp joiner ../)
-	(cd power-analyzer && go build && cp power ../)
+	(cd cmd/nginx-log-indexer && go build && mv indexer ../../build/)
+	(cd cmd/stats-builder && go build && cp stats ../../build/)
+	(cd cmd/metrics-joiner && go build && cp joiner ../../build/)
+	(cd cmd/power-analyzer && go build && cp power ../../build/)
+	(cd cmd/uploader-finder && go build && mv finder ../../build/)

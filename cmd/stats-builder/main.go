@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -80,7 +81,7 @@ func writeStats(s stats, path string) error {
 	// Build the ip data section. The format is the date [10 bytes], followed by
 	// a uint64 specifying the number of ip addresses, followed by the ip
 	// addresses.
-	ipData := make([]byte, 10+8+4(len(s.ips)))
+	ipData := make([]byte, 10+8+4+(len(s.ips)))
 	copy(ipData, []byte(os.Args[1]))
 	binary.LittleEndian.PutUint64(ipData[10:], uint64(len(s.ips)))
 	i := 0
@@ -88,7 +89,7 @@ func writeStats(s stats, path string) error {
 		nip := net.ParseIP(ip)
 		nip4 := nip.To4()
 		ip32 := binary.LittleEndian.Uint32(nip4)
-		binary.LittleEndian.PutUint64(ipData[10+8+4*i:], ip32)
+		binary.LittleEndian.PutUint32(ipData[10+8+4*i:], ip32)
 		i++
 	}
 	_, err = ipsFile.Write(ipData)

@@ -1,4 +1,4 @@
-module splitter
+module indexer
 
 go 1.16
 
