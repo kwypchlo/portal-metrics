@@ -15,32 +15,13 @@ do
 	fi
 done
 
-# Run the updater on every server.
+# Run the filter on every server, which should resume from the last scanned log
+# line and continue building out the log indexes.
 for server in $servers
 do
 	# Transfer the necessary scrips and binaries to the server and run them.
 	echo "updating $server"
 	ssh $server "mkdir -p /home/user/metrics" || continue
-	scp build/{banfinder,filter,evilSkylinks.txt} $server:/home/user/metrics/ || continue
+	scp build/filter $server:/home/user/metrics/ || continue
 	ssh $server "/home/user/metrics/filter /home/user/skynet-webportal/docker/data/nginx/logs /home/user/metrics"
-done
-exit 0
-
-# Run the updater on each server.
-#
-# TODO: Re-enable, need to code review metrics.sh first and make sure it still
-# matches the updated dir structures.
-mkdir -p build/servers
-for server in $servers
-do
-	# Transfer the necessary scrips and binaries to the server and run them.
-	echo "running metrics.sh on $server"
-	ssh $server "mkdir -p /home/user/metrics" || continue
-	scp server-updater/{metrics.sh,stats,splitter} $server:/home/user/metrics/ || continue
-	ssh $server "/home/user/metrics/metrics.sh" || continue
-
-	# Tar the resulting directories and download the tarballs to the local data
-	# folder.
-	ssh $server "cd /home/user/metrics && tar -czf metric-results.tar.gz apps main latestScan.txt" || continue
-	scp $server:/home/user/metrics/metric-results.tar.gz data/servers/$server-metric-results.tar.gz || continue
 done

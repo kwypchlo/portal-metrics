@@ -6,6 +6,7 @@ servers=$(ls -1 build/server-keys)
 for server in $servers
 do
 	# Transfer the necessary scrips and binaries to the server and run them.
+	scp build/{banfinder,evilSkylinks.txt} $server:/home/user/metrics || continue
 	ssh $server "/home/user/metrics/banfinder /home/user/metrics > /home/user/metrics/ipbans.txt"
 	scp $server:/home/user/metrics/ipbans.txt build/ip-bans/$server-ipbans.txt
 done
