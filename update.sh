@@ -21,7 +21,7 @@ for server in $servers
 do
 	# Transfer the necessary scrips and binaries to the server and run them.
 	echo "updating $server"
-	ssh $server "mkdir -p /home/user/metrics" || continue
+	ssh $server "mkdir -p /home/user/metrics/days" || continue
 	scp build/filter $server:/home/user/metrics/ || continue
 	ssh $server "/home/user/metrics/filter /home/user/skynet-webportal/docker/data/nginx/logs /home/user/metrics"
 done

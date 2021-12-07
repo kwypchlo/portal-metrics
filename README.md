@@ -7,6 +7,17 @@ information such as daily downloads and uploads for each skapp, and it can be
 used to perform tasks like collecting a list of IP addresses responsible for
 uploading malicious content such as malware or phishing applications.
 
+#### Eventual TODOs:
+
++ We should grab the server list from a portal API. We can use either an
+  environment variable or some input parameter to specify the portal, and then
+  we can get the server list from its API.
++ We should get the list of evil skylinks from the portal API. This is going to
+  require authentication, as we need the exposed skylinks as opposed to the
+  shielded ones. There might be some way to modify the nginx logs so that going
+  forward it actually is sufficient to grab only the hidden skylinks, which
+  would remove the need for auth
+
 ## Server Setup
 
 To get started, run `make dependencies`. You will need go 1.16 or later for this
