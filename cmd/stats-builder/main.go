@@ -82,7 +82,7 @@ func writeStats(s stats, path string) error {
 	// a uint64 specifying the number of ip addresses, followed by the ip
 	// addresses.
 	ipData := make([]byte, 10+8+(4*(len(s.ips))))
-	copy(ipData, []byte(os.Args[1]))
+	copy(ipData, []byte(filepath.Base(os.Args[1])))
 	i := 0
 	for ip, _ := range s.ips {
 		nip := net.ParseIP(ip)
@@ -92,7 +92,7 @@ func writeStats(s stats, path string) error {
 			binary.LittleEndian.PutUint32(ipData[10+8+(4*i):], ip32)
 			i++
 		} else {
-			// Trip the ipData as one of the IPs was incorrect.
+			// Trim the ipData as one of the IPs was incorrect.
 			ipData = ipData[:len(ipData)-4]
 		}
 	}

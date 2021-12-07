@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -222,37 +223,24 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 	}
 
 	// Split the file contents into their daily sections.
-	srcSections := bytes.Split(srcContents, []byte{'\n', '!', '\n'})
-	destSections := bytes.Split(destContents, []byte{'\n', '!', '\n'})
-
-	// Check for empty sections. For each src and dest, first check if the first
-	// section is empty, then check if the last section is empty. Need to wrap
-	// each step in a zero check because after we trim the first section it
-	// could be empty again.
-	if len(srcSections) > 0 {
-		if len(srcSections[0]) < 4 {
-			srcSections = srcSections[1:]
-		}
+	var srcSections [][]byte
+	for len(srcContents) > 18 {
+		numIPs := binary.LittleEndian.Uint64(srcContents[10:])
+		sectionLen := 10+8+(4*numIPs)
+		srcSections = append(srcSections, srcContents[:sectionLen])
+		srcContents = srcContents[sectionLen:]
 	}
-	if len(srcSections) > 0 {
-		if len(srcSections[len(srcSections)-1]) < 4 {
-			srcSections = srcSections[:len(srcSections)-1]
-		}
-	}
-	if len(destSections) > 0 {
-		if len(destSections[0]) < 4 {
-			destSections = destSections[1:]
-		}
-	}
-	if len(destSections) > 0 {
-		if len(destSections[len(destSections)-1]) < 4 {
-			destSections = destSections[:len(destSections)-1]
-		}
+	var destSections [][]byte
+	for len(destContents) > 18 {
+		numIPs := binary.LittleEndian.Uint64(destContents[10:])
+		sectionLen := 10+8+(4*numIPs)
+		destSections = append(destSections, destContents[:sectionLen])
+		destContents = destContents[sectionLen:]
 	}
 
 	// Merge the set of sections together, building the datapoints for the
 	// graphs, and building the new file data.
-	var newSections [][]byte
+	var newSections []byte
 	var xDataDaily []string
 	var yDataDaily []string
 	var xDataMonthly []string
@@ -260,18 +248,18 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 	var xDataChurn []string
 	var yDataChurn []string
 	var currentDay, prevDay []byte
-	currentMonthIPs := make(map[string]struct{})
-	var prevMonthIPs map[string]struct{}
+	currentMonthIPs := make(map[uint32]struct{})
+	var prevMonthIPs map[uint32]struct{}
 	for len(srcSections) > 0 || len(destSections) > 0 {
 		// Merge the two sections into one section.
-		var mergedSection []byte
+		var mergedSectionA, mergedSectionB []byte
 		if len(srcSections) == 0 {
 			currentDay = destSections[0][:10]
-			mergedSection = destSections[0]
+			mergedSectionA = destSections[0]
 			destSections = destSections[1:]
 		} else if len(destSections) == 0 {
 			currentDay = srcSections[0][:10]
-			mergedSection = srcSections[0]
+			mergedSectionA = srcSections[0]
 			srcSections = srcSections[1:]
 		} else {
 			// The first 10 characters of the section are the date, check if the
@@ -279,17 +267,18 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 			cmp := bytes.Compare(srcSections[0][:10], destSections[0][:10])
 			if cmp < 0 {
 				currentDay = srcSections[0][:10]
-				mergedSection = srcSections[0]
+				mergedSectionA = srcSections[0]
 				srcSections = srcSections[1:]
 			} else if cmp > 0 {
 				currentDay = destSections[0][:10]
-				mergedSection = destSections[0]
+				mergedSectionA = destSections[0]
 				destSections = destSections[1:]
 			} else {
 				// The two sections need to be merged into one. We want to
 				// ignore the date line in the second section.
 				currentDay = destSections[0][:10]
-				mergedSection = append(srcSections[0], destSections[0][11:]...)
+				mergedSectionA = srcSections[0]
+				mergedSectionB = destSections[0]
 				srcSections = srcSections[1:]
 				destSections = destSections[1:]
 			}
@@ -326,17 +315,26 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 
 			// Rotate the maps that track the IPs.
 			prevMonthIPs = currentMonthIPs
-			currentMonthIPs = make(map[string]struct{})
+			currentMonthIPs = make(map[uint32]struct{})
 		}
 		prevDay = currentDay
 
-		// We now have the merged section, which may or may not contain
+		// We now have the merged sections, which may or may not contain
 		// duplicate IPs. Parse it to fill out the IP maps.
-		currentDayIPs := make(map[string]struct{})
-		mergedLines := bytes.Split(mergedSection[11:], []byte{'\n'})
-		for i := 0; i < len(mergedLines); i++ {
-			currentDayIPs[string(mergedLines[i])] = struct{}{}
-			currentMonthIPs[string(mergedLines[i])] = struct{}{}
+		currentDayIPs := make(map[uint32]struct{})
+		if len(mergedSectionA) > 18 {
+			ipCount := binary.LittleEndian.Uint64(mergedSectionA[10:])
+			for i := uint64(0); i < ipCount; i++ {
+				ip := binary.LittleEndian.Uint32(mergedSectionA[18+(4*i):])
+				currentDayIPs[ip] = struct{}{}
+			}
+		}
+		if len(mergedSectionB) > 18 {
+			ipCount := binary.LittleEndian.Uint64(mergedSectionB[10:])
+			for i := uint64(0); i < ipCount; i++ {
+				ip := binary.LittleEndian.Uint32(mergedSectionB[18+(4*i):])
+				currentDayIPs[ip] = struct{}{}
+			}
 		}
 
 		// Fill out the daily data for the graph.
@@ -347,18 +345,17 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 		xDataDaily = append(xDataDaily, string(currentDayBytes))
 		yDataDaily = append(yDataDaily, strconv.Itoa(len(currentDayIPs)))
 
-		// Create the new section from the current day IP map.
-		finalLines := make([][]byte, len(currentDayIPs)+1)
-		finalLines[0] = currentDay
-		i := 1
+		// Create the new section from the current day IP map and add it to the
+		// list of sections.
+		newSection := make([]byte, 18+(4*len(currentDayIPs)))
+		copy(newSection, currentDay)
+		binary.LittleEndian.PutUint64(newSection[10:], uint64(len(currentDayIPs)))
+		i := 0
 		for ip, _ := range currentDayIPs {
-			finalLines[i] = []byte(ip)
+			binary.LittleEndian.PutUint32(newSection[18+(4*i):], ip)
 			i++
 		}
-
-		// Join the merged lines into the new section and append it to the list
-		// of sections.
-		newSections = append(newSections, bytes.Join(finalLines, []byte{'\n'}))
+		newSections = append(newSections, newSection...)
 	}
 
 	// All data collected. Write the new sections to the dest file.
@@ -370,8 +367,7 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 	if err != nil {
 		return errors.AddContext(err, "unable to set new filesize to zero")
 	}
-	newDestData := bytes.Join(newSections, []byte{'\n', '!', '\n'})
-	_, err = destFile.Write([]byte(newDestData))
+	_, err = destFile.Write(newSections)
 	if err != nil {
 		return errors.AddContext(err, "unable to write to dest file")
 	}
@@ -419,16 +415,16 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 
 func main() {
 	// Check the args are right.
-	if len(os.Args) != 4 && len(os.Args) != 5 {
+	if len(os.Args) != 4 {
 		fmt.Println("improper use, please provide the source directory of the directory being merged")
 		fmt.Println("Usage: ./joiner 2021.11.05 build/tmp/main build/joined-data/main")
-		fmt.Println("Usage: ./joiner 2021.11.05 build/tmp/main")
+		fmt.Println("Usage: ./joiner build/tmp/main build/joined-data/main ips")
 		fmt.Println(os.Args)
 		return
 	}
 
 	// Try joining the download file.
-	if len(os.Args) == 4 {
+	if os.Args[3] != "ips" {
 		downloadsSrcPath := filepath.Join(os.Args[2], "downloads.txt")
 		downloadsDestPath := filepath.Join(os.Args[3], "downloads.txt")
 		err := joinFilesSum(downloadsSrcPath, downloadsDestPath, os.Args[1])
@@ -445,13 +441,10 @@ func main() {
 			fmt.Printf("Unable to join files %v and %v: %v\n", uploadsSrcPath, uploadsDestPath, err)
 			return
 		}
-	} else if len(os.Args) == 5 {
-		// TODO: Need to adapt to the new os args, and the new ipdata format.
-		panic("not ready yet")
-
+	} else {
 		// Try joining the ip-data
-		ipDataSrcPath := filepath.Join("combined-metrics", "tmp", os.Args[2], "ips.txt")
-		ipDataDestPath := filepath.Join("combined-metrics", "joined-data", os.Args[2], "ips.txt")
+		ipDataSrcPath := filepath.Join(os.Args[2], "ips.txt")
+		ipDataDestPath := filepath.Join(os.Args[3], "ips.txt")
 		err := joinUniques(ipDataSrcPath, ipDataDestPath, os.Args[1])
 		if err != nil {
 			fmt.Printf("Unable to unique-join files %v and %v: %v\n", ipDataSrcPath, ipDataDestPath, err)

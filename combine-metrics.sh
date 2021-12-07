@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# TODO: Need a separate 'processedUntil' file for ips
-
 # Prepare the build directory. We have a 'graphs' folder where all of the graphs
 # will be placed, and a 'servers-dates-processed' folder which tracks the dates we've
 # already processed for each server.
@@ -18,6 +16,7 @@ cp graph-code/plotly-2.6.3.min.js build/graphs/apps
 # will extract the tarball of indexes from the server into a tmp folder and then
 # process those indexes by merging the numbers with the main index.
 servers=$(ls -1 build/server-keys)
+
 for server in $servers
 do
 	# Extract the latest data from the server to a tmp directory.
@@ -100,7 +99,7 @@ do
 		echo "<a href=skapps-$metric-$decay.html>skapps-$metric-$decay</a><br>" >> build/graphs/index.html
 
 		# Create the file itself.
-		sortedApps=$(cat $sortings/skapps/$metric-$decay.txt | cut -d' ' -f2- | head -25)
+		sortedApps=$(cat $sortings/skapps/$metric-$decay.txt | cut -d' ' -f2- | head -100)
 		echo "<html><body>" > build/graphs/skapps-$metric-$decay.html
 		for app in $sortedApps
 		do
@@ -140,14 +139,10 @@ cat build/graphs-pruned/applist.txt | sort | uniq > build/graphs-pruned/appList.
 rm build/graphs-pruned/applist.txt
 applist=$(cat build/graphs-pruned/appList.txt)
 
-# TODO: REMOVE, this is just for debugging
-exit 0
-
 # Go back through the servers to build the ipData for the top ranking apps. We
 # only build the ipData for the top ranked apps because it is computationally
 # very expensive, and doesn't currently leverage indexing to avoid doing repeat
 # work.
-servers=$(ls -1 build/server-keys)
 for server in $servers
 do
 	# Extract the latest data from the server to the working directory.
@@ -158,11 +153,11 @@ do
 
 	# Grap the ip-data from this server for the chosen set of apps. We need to
 	# copy in a special graph.html which knows to look for the ip data.
-	./joiner $processedUntil main ips
+	./build/joiner 0 build/tmp/main build/joined-data/main ips
 	cp graph-code/graph-ips.html build/graphs/main/graph.html
 	for app in $applist
 	do
-		./joiner $processedUntil apps/$app ips
+		./build/joiner 0 build/tmp/apps/$app build/joined-data/apps/$app ips
 		cp graph-code/graph-ips.html build/graphs/apps/$app/graph.html
 	done
 done

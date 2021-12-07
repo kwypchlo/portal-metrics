@@ -34,12 +34,19 @@ server's key to the users list of hosts. If the contents are "true", then the
 script assumes that any ssh key errors indicate an attack, and the scripts will
 not connect to that server until the issue is resolved.
 
-## (shortcut - TODO)
+## Get Results
 
 If you just want to run everything, follow the steps above and then use the
 following command:
 
 `./update.sh && ./build-banlist.sh && ./fetch-metrics.sh && ./combine-metrics.sh`
+
+After that there will be an index.html in build/graphs and another in
+build/graphs-pruned.  Each of these can be uploaded to Skynet, which will
+produce a webapp that allows you to explore metrics. There will also be files at
+build/ip-bans-24.txt and build/ip-bans.txt which suggest IP addresses to ban
+based on the file placed at build/evilSkylinks.txt. For more information, read
+further.
 
 ## Updating Portals
 
@@ -114,5 +121,25 @@ makes it relatively fast once the initial historic data has been processed.
 
 ## Running the Merge Metrics Script
 
-TODO: The merge metrics script needs the binary updated to handle the new format
-for the IP list.
+The merge script works by going through the tarballs that get downloaded by the
+metrics script and combining all of the stats together into one global picture
+of metrics for each app. Part of building the global picture will be producing a
+skapp in the build folder at build/graphs and a smaller skapp in
+build/graphs-pruned which will provide access to historic metrics for all apps
+on a per-app basis.
+
+Because getting historic unique IPs is computationally expensive, only the top
+apps will have IP data. Typically this will be between 300 and 500 apps total,
+it's the top 100 apps of each category (most uploads over past timeframe, most
+downloads over past timeframe, for each timeframe in 1 day, 7 days, 30 days, 90
+days, and all time).
+
+The app attempts to distinguish between traditional internet apps that are using
+the portal as a CDN and fully decentralized skapps that are hosted fully on
+Skynet. The distinction isn't perfect and is primarily based on the domain name.
+
+## Resetting
+
+Calling ./reset.sh will iterate over all of the servers, removing their metrics
+directory. Then it will remove the local build folder, except for the list of
+server keys and evil skylinks.
