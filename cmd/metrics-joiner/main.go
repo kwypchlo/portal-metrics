@@ -175,7 +175,7 @@ func joinFilesSum(srcPath, destPath, dateProcessed string) (err error) {
 
 // joinUniques will combine a source file and a dest file that list a set of
 // unique elements separated by day 
-func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
+func joinUniques(srcPath, destPath string) (err error) {
 	// Get the source files opened and read.
 	srcFile, err := os.OpenFile(srcPath, os.O_RDONLY, 0644)
 	if os.IsNotExist(err) {
@@ -443,9 +443,9 @@ func main() {
 		}
 	} else {
 		// Try joining the ip-data
-		ipDataSrcPath := filepath.Join(os.Args[2], "ips.txt")
-		ipDataDestPath := filepath.Join(os.Args[3], "ips.txt")
-		err := joinUniques(ipDataSrcPath, ipDataDestPath, os.Args[1])
+		ipDataSrcPath := filepath.Join(os.Args[1], "ips.txt")
+		ipDataDestPath := filepath.Join(os.Args[2], "ips.txt")
+		err := joinUniques(ipDataSrcPath, ipDataDestPath)
 		if err != nil {
 			fmt.Printf("Unable to unique-join files %v and %v: %v\n", ipDataSrcPath, ipDataDestPath, err)
 			return
