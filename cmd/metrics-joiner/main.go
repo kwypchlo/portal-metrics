@@ -327,6 +327,7 @@ func joinUniques(srcPath, destPath string) (err error) {
 			for i := uint64(0); i < ipCount; i++ {
 				ip := binary.LittleEndian.Uint32(mergedSectionA[18+(4*i):])
 				currentDayIPs[ip] = struct{}{}
+				currentMonthIPs[ip] = struct{}{}
 			}
 		}
 		if len(mergedSectionB) > 18 {
@@ -334,6 +335,7 @@ func joinUniques(srcPath, destPath string) (err error) {
 			for i := uint64(0); i < ipCount; i++ {
 				ip := binary.LittleEndian.Uint32(mergedSectionB[18+(4*i):])
 				currentDayIPs[ip] = struct{}{}
+				currentMonthIPs[ip] = struct{}{}
 			}
 		}
 
