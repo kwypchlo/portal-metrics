@@ -153,11 +153,11 @@ do
 
 	# Grap the ip-data from this server for the chosen set of apps. We need to
 	# copy in a special graph.html which knows to look for the ip data.
-	./build/joiner 0 build/tmp/main build/joined-data/main ips
+	./build/joiner build/tmp/main build/joined-data/main ips
 	cp graph-code/graph-ips.html build/graphs/main/graph.html
 	for app in $applist
 	do
-		./build/joiner 0 build/tmp/apps/$app build/joined-data/apps/$app ips
+		./build/joiner build/tmp/apps/$app build/joined-data/apps/$app ips
 		cp graph-code/graph-ips.html build/graphs/apps/$app/graph.html
 	done
 done
