@@ -1,8 +1,10 @@
 #!/bin/bash
 
-# Get the list of servers
-servers=$(ls -1 build/server-keys)
+# Create the ip-bans directory to store the ip-bans file for each server.
+mkdir -p build/ip-bans
 
+# Iterate over the servers and check for abuse on each.
+servers=$(ls -1 build/server-keys)
 for server in $servers
 do
 	# Transfer the necessary scrips and binaries to the server and run them.
