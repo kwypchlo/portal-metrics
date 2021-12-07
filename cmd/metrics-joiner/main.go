@@ -419,18 +419,18 @@ func joinUniques(srcPath, destPath, dateProcessed string) (err error) {
 
 func main() {
 	// Check the args are right.
-	if len(os.Args) != 3 && len(os.Args) != 4 {
+	if len(os.Args) != 4 && len(os.Args) != 5 {
 		fmt.Println("improper use, please provide the source directory of the directory being merged")
-		fmt.Println("Usage: ./joiner [server] [app-dir]")
-		fmt.Println("Usage: ./joiner [server] [app-dir] ips")
+		fmt.Println("Usage: ./joiner 2021.11.05 build/tmp/main build/joined-data/main")
+		fmt.Println("Usage: ./joiner 2021.11.05 build/tmp/main")
 		fmt.Println(os.Args)
 		return
 	}
 
 	// Try joining the download file.
-	if len(os.Args) == 3 {
-		downloadsSrcPath := filepath.Join("combined-metrics", "tmp", os.Args[2], "downloads.txt")
-		downloadsDestPath := filepath.Join("combined-metrics", "joined-data", os.Args[2], "downloads.txt")
+	if len(os.Args) == 4 {
+		downloadsSrcPath := filepath.Join(os.Args[2], "downloads.txt")
+		downloadsDestPath := filepath.Join(os.Args[3], "downloads.txt")
 		err := joinFilesSum(downloadsSrcPath, downloadsDestPath, os.Args[1])
 		if err != nil {
 			fmt.Printf("Unable to join files %v and %v: %v\n", downloadsSrcPath, downloadsDestPath, err)
@@ -438,14 +438,17 @@ func main() {
 		}
 
 		// Try joining the upload file.
-		uploadsSrcPath := filepath.Join("combined-metrics", "tmp", os.Args[2], "uploads.txt")
-		uploadsDestPath := filepath.Join("combined-metrics", "joined-data", os.Args[2], "uploads.txt")
+		uploadsSrcPath := filepath.Join(os.Args[2], "uploads.txt")
+		uploadsDestPath := filepath.Join(os.Args[3], "uploads.txt")
 		err = joinFilesSum(uploadsSrcPath, uploadsDestPath, os.Args[1])
 		if err != nil {
 			fmt.Printf("Unable to join files %v and %v: %v\n", uploadsSrcPath, uploadsDestPath, err)
 			return
 		}
-	} else if len(os.Args) == 4 {
+	} else if len(os.Args) == 5 {
+		// TODO: Need to adapt to the new os args, and the new ipdata format.
+		panic("not ready yet")
+
 		// Try joining the ip-data
 		ipDataSrcPath := filepath.Join("combined-metrics", "tmp", os.Args[2], "ips.txt")
 		ipDataDestPath := filepath.Join("combined-metrics", "joined-data", os.Args[2], "ips.txt")

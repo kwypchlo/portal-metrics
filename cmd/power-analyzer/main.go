@@ -111,9 +111,9 @@ func main() {
 	// Determine the sorting type.
 	var path string
 	if os.Args[3] == "downloads" {
-		path = filepath.Join("combined-metrics", "joined-data", os.Args[2], "downloads.txt")
+		path = filepath.Join(os.Args[2], "downloads.txt")
 	} else if os.Args[3] == "uploads" {
-		path = filepath.Join("combined-metrics", "joined-data", os.Args[2], "uploads.txt")
+		path = filepath.Join(os.Args[2], "uploads.txt")
 	} else {
 		fmt.Println("Invalid sort type, options are 'downloads' and 'uploads'")
 		return

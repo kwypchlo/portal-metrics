@@ -39,7 +39,7 @@ not connect to that server until the issue is resolved.
 If you just want to run everything, follow the steps above and then use the
 following command:
 
-`./update.sh && ./build-banlist.sh && ./fetch-metrics.sh && <more to come>`
+`./update.sh && ./build-banlist.sh && ./fetch-metrics.sh && ./combine-metrics.sh`
 
 ## Updating Portals
 
@@ -71,6 +71,10 @@ parse the gzipped logs in order.
 
 ## Running the Banscript
 
+TODO: Need to specify where one acquires the evilSkylinks.txt file. This will be
+some sort of interaction with the blocker database, and it might even be
+something that we can automate inside of `build-banlist.sh`.
+
 To use the ban script, you need to add a file 'evilSkylinks.txt' to the build
 folder. The evil skylinks file should have a list of skylinks that have been
 identified as problematic, one per line. Once you have done this, your build
@@ -86,10 +90,6 @@ build/
 		us-ny-2.siaskynet
 ```
 
-TODO: Need to specify where one acquires the evilSkylinks.txt file. This will be
-some sort of interaction with the blocker database, and it might even be
-something that we can automate inside of `build-banlist.sh`.
-
 Once that is complete, you can run `build-banlist.sh`, which will check the
 upload history of each server, and identify any IP addresses which are
 responsible for uploading data in the evil skylinks list.
@@ -102,3 +102,17 @@ addresses each upload at least one evil file.
 Our recommendation is that you ban every IP address and every /24 in the list.
 
 ## Running the Metrics Script
+
+The only requirement for the metrics script is that the update script is run
+first. The metrics script will load some utilities (the 'stats' utility and the
+'server-metrics.sh' utility) onto each server and then use them to build an
+index. After the index has been built, it will create a tar.gz file containing
+the index, which it will download and house locally.
+
+Similar to the update script, the metrics script will only run on new data. This
+makes it relatively fast once the initial historic data has been processed.
+
+## Running the Merge Metrics Script
+
+TODO: The merge metrics script needs the binary updated to handle the new format
+for the IP list.

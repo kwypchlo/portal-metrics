@@ -50,7 +50,7 @@ do
 	# If the stats command fails, abort immediately, we do not want to corrupt
 	# our files by processing the same day multiple times. If for some reason
 	# the stats process fails, we nuke the indexes that it creates.
-	./stats days/$dayFile || rm -rf latestScan.txt main/ app/ && exit 1
+	./stats days/$dayFile || (rm -rf latestScan.txt main/ app/ && exit 1)
 
 	# Update the latest day so that we don't process this dayfile again. This
 	# file is also used by scripts that download the processed data, so we need
