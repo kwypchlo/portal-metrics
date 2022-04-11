@@ -1,7 +1,7 @@
 all: dependencies build
 
 dependencies:
-	mkdir -p build
+	mkdir -p build/server-keys
 	(cd cmd/metrics-joiner && go build && cp joiner ../../build/)
 	(cd cmd/nginx-log-filter && go build && mv filter ../../build/)
 	(cd cmd/power-analyzer && go build && cp power ../../build/)
